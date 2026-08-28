@@ -18,6 +18,14 @@ test("merges SAIA Qwen 3.6 system messages and ignores blank fragments", () => {
   assert.deepEqual(system, ["OpenCode instructions\n\nProject instructions"])
 })
 
+test("merges SAIA Qwen 3.8 system messages into one leading message", () => {
+  const system = ["OpenCode instructions", "Project instructions"]
+
+  normalizeSaiaQwenSystemMessages({ providerID: "saia", id: "qwen3.8-27b" }, system)
+
+  assert.deepEqual(system, ["OpenCode instructions\n\nProject instructions"])
+})
+
 test("does not modify models without SAIA's strict Qwen system-message constraint", () => {
   const coderSystem = ["OpenCode instructions", "Project instructions"]
   const otherProviderSystem = ["OpenCode instructions", "Project instructions"]

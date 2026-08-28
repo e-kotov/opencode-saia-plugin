@@ -276,7 +276,7 @@ include_in_profile_development() {
 
     # Development: Balanced models for active development
     case "$id" in
-        qwen3.6-35b-a3b|qwen3.6-27b|qwen3-coder-next|glm-4.7|deepseek-v4-flash*|mistral-medium-3.5-128b)
+        qwen3.6-35b-a3b|qwen3.6-27b|qwen3.8-27b|qwen3-coder-next|glm-4.7|deepseek-v4-flash*|mistral-medium-3.5-128b)
             echo "true"
             ;;
         gemma-4-31b-it|apertus-70b*)
@@ -296,7 +296,7 @@ include_in_profile_budget() {
         meta-llama-3.1-8b-instruct|qwen3-30b-a3b-instruct-2507|deepseek-v4-flash-0731)
             echo "true"
             ;;
-        qwen3.6-27b)
+        qwen3.6-27b|qwen3.8-27b)
             echo "true"
             ;;
         *)
@@ -329,7 +329,7 @@ describe() {
     case "$id" in
         qwen3.5-397b-a17b)       echo "Qwen3.5 397B MoE (128k ctx) — Flagship reasoning, best quality" ;;
         qwen3.5-122b-a10b)       echo "Qwen3.5 122B MoE (128k ctx) — Strong reasoning, fast" ;;
-        qwen3.6-27b)             echo "Qwen3.6 27B Dense — Efficient generalist" ;;
+        qwen3.8-27b)             echo "Qwen3.8 27B Dense — Efficient generalist" ;;
         qwen3.6-27b)             echo "Qwen3.6 27B Dense — Efficient generalist" ;;
         qwen3.6-35b-a3b)         echo "Qwen3.6 35B MoE (128k ctx) — Vision, reasoning, agentic coding" ;;
         qwen3-coder-next)         echo "Qwen3 Coder Next — Code-specialized" ;;
@@ -366,7 +366,7 @@ can_reason() {
 get_context_window() {
     local id="$1"
     case "$id" in
-        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|qwen3.6-27b|glm-4.7|meta-llama-3.1-8b-instruct|apertus-70b-instruct-2509|devstral-2-123b-instruct-2512|openai-gpt-oss-120b|mistral-medium-3.5-128b|deepseek-v4-flash-0731)
+        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|qwen3.6-27b|qwen3.8-27b|glm-4.7|meta-llama-3.1-8b-instruct|apertus-70b-instruct-2509|devstral-2-123b-instruct-2512|openai-gpt-oss-120b|mistral-medium-3.5-128b|deepseek-v4-flash-0731)
             echo "128000"
             ;;
         gemma-4-31b-it|qwen3-coder-next|qwen3-30b-a3b-instruct-2507)
@@ -399,7 +399,7 @@ get_output_window() {
         qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|mistral-medium-3.5-128b)
             echo "32768"
             ;;
-        glm-4.7|devstral-2-123b-instruct-2512|qwen3-coder-next|deepseek-v4-flash-0731|qwen3.6-27b)
+        glm-4.7|devstral-2-123b-instruct-2512|qwen3-coder-next|deepseek-v4-flash-0731|qwen3.6-27b|qwen3.8-27b)
             echo "16384"
             ;;
         qwen3-30b-a3b-instruct-2507)

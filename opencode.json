@@ -287,8 +287,8 @@
             ]
           }
         },
-        "qwen3.6-27b": {
-          "name": "Qwen3.6 27B Dense — Efficient generalist",
+        "qwen3.8-27b": {
+          "name": "Qwen3.8 27B Dense — Efficient generalist",
           "options": {
             "enable-tools": true,
             "enable-auto-tool-choice": true,

@@ -2,7 +2,7 @@
 
 OpenCode plugin that adds all [SAIA](https://chat-ai.academiccloud.de) (GWDG Chat AI) models to your OpenCode setup.
 
-**Repositories:** 
+**Repositories:**
 - **Primary (active development):** [GitHub](https://github.com/tobias-weiss-ai-xr/opencode-saia-plugin)
 - **Legacy mirror:** [Codeberg](https://codeberg.org/graphwiz-ai/opencode-saia-plugin) (synced periodically, PRs welcome but development happens on GitHub)
 - **Original (reference):** [GitLab](https://gitlab-ce.gwdg.de/jlewis/opencode-saia-plugin) (jlewis/GWDG)
@@ -13,20 +13,80 @@ OpenCode plugin that adds all [SAIA](https://chat-ai.academiccloud.de) (GWDG Cha
 2. Generates an `opencode.json` with all SAIA models, properly categorized
 3. Copies it to your project directory so OpenCode picks it up
 
+## OpenCode 2
+
+This checkout targets OpenCode 2 (verified against 2.0.32). OpenCode 2 loads a
+plugin *directory*: `install.sh` installs `src/` as
+`~/.config/opencode/plugins/saia/` (honouring `$OPENCODE_CONFIG_DIR` and
+`$XDG_CONFIG_HOME`), where `server.js` is the server half and `tui.tsx` the
+rate-limit widget. No `plugins/saia-plugin.ts` wrapper and no `tui.json`
+registration are needed; the installer removes those OpenCode 1 files when they
+are this plugin's own copies. The OpenCode 1 implementation remains in
+`src/saia.ts`, `src/saia-plugin.ts` and `src/saia-limits-tui.tsx` for reference.
+
+| OpenCode 1 hook | OpenCode 2 replacement (`src/server.js`) |
+|---|---|
+| `config` (models, npm, baseURL, apiKey, default model) | SAIA `/models` discovery before registration, then a provider transform (adds the `saia` provider when it is not configured) and a model transform (discovered models, the transport's client package on every SAIA model, the resolved SAIA key only where no key is configured, retired generated models hidden, default model) |
+| `chat.headers` + `fetch` wrapper (rate limits) | `session.hook("http.response")` scoped to `saia`, per-session records in plugin storage, served over the `saia-limits` RPC (`src/saia-limits-v2.js`) |
+| `experimental.chat.system.transform` | `context`, `compaction`, `generate` and `title` session hooks merge the system parts for the strict Qwen deployments |
+
+A configured `saia` provider still wins for its name, `baseURL` (for example a
+local gateway) and key; discovery keeps using SAIA_API_KEY / `apiKeyCommand`
+against the `saia.json` host, and that key is never sent to a configured
+gateway. Discovered models without configured limits get OpenCode 2's default
+model limits, because SAIA's `/models` does not report them; the `thought`
+output flag (OpenCode 1 `reasoning: true`) has no OpenCode 2 model field and is
+not mapped.
+
+For a host that configures the `saia` provider itself and only wants the
+rate-limit observer and widget — as the GWDG deployment used the OpenCode 1
+`saia-limits-server.js` — install the standalone variant instead:
+
+```bash
+bash install.sh --limits-only    # → ~/.config/opencode/plugins/saia-limits/
+```
+
+It refuses to install beside the full plugin, which already includes it, and
+installing the full plugin removes it, moving its `cli.json` entry and widget
+options to `./plugins/saia` (options already set for `saia` win; entries for
+anything other than this config's `plugins/saia-limits` and `plugins/saia` are
+untouched). `cli.json` is read as JSONC, as OpenCode reads it: comments outside
+`plugins` are kept. If `cli.json` cannot be parsed or written, the install
+stops and leaves the previous runtime and `cli.json` in place.
+
+Widget options (`narrow`, `placement`, `layout`) go in `cli.json`. With the
+full plugin, its installed configurator writes them:
+
+```bash
+node ~/.config/opencode/plugins/saia/install-tui-config.mjs --placement both
+```
+
+The standalone directory ships no configurator; run the checkout's, which
+takes the config directory as an optional argument (default
+`$OPENCODE_CONFIG_DIR`, else `$XDG_CONFIG_HOME/opencode`):
+
+```bash
+node src/install-tui-config.mjs --limits-only --placement both [config-dir]
+```
+
+...or add the entry by hand:
+
+```json
+{ "plugins": [{ "package": "./plugins/saia-limits", "options": { "placement": "both" } }] }
+```
+
 ## Installation
 
-Requires: `SAIA_API_KEY`, `curl`, `jq`
+Requires: `SAIA_API_KEY` (or `apiKeyCommand`), `node`; the config generators
+also need `curl`, `jq`
 
 ```bash
 # Clone
 git clone https://codeberg.org/graphwiz-ai/opencode-saia-plugin.git
 cd opencode-saia-plugin
 
-# Install as OpenCode plugin
-mkdir -p ~/.config/opencode/plugins
-cp -r src ~/.config/opencode/plugins/saia
-chmod +x ~/.config/opencode/plugins/saia/generate-saia-config.sh
-chmod +x ~/.config/opencode/plugins/saia/copy-saia-config.sh
+# Install as an OpenCode 2 plugin directory (~/.config/opencode/plugins/saia/)
+bash install.sh
 
 # Set your API key (Linux/macOS - permanent)
 echo 'export SAIA_API_KEY="your_key_here"' >> ~/.bashrc
@@ -53,6 +113,22 @@ curl -fsSL https://codeberg.org/graphwiz-ai/opencode-saia-plugin/raw/branch/mast
 Invoke-WebRequest -Uri "https://codeberg.org/graphwiz-ai/opencode-saia-plugin/raw/branch/master/install.ps1" -UseBasicParsing | Invoke-Expression
 ```
 
+> **OpenCode 2:** until this port is published, the Codeberg clone and
+> one-liners above install the OpenCode 1 plugin. Install from the maintained
+> OpenCode 2 checkout with `bash install.sh` instead.
+
+### Updating
+
+Pull the maintained checkout and run `bash install.sh` again (settings and
+`cli.json` options are kept). The installed `plugins/saia/update-plugin.sh`
+downloads nothing by default: `--check` and `--self-update` exit with these
+directions, because the Codeberg upstream is the OpenCode 1 plugin.
+`SAIA_PLUGIN_V2_ARCHIVE_URL=<.tar.gz of an OpenCode 2 checkout>
+update-plugin.sh --self-update` installs such an archive (`src/` at its root or
+under one directory), after checking it has the OpenCode 2 entry points and
+backing up the current install, which is restored if the install fails;
+`--rollback` restores the newest backup.
+
 ### Interactive Setup Wizard
 
 For first-time users, the interactive wizard guides you through the entire setup:
@@ -70,7 +146,7 @@ The wizard will:
 
 ### Rate Limits & Live Quota Counter
 
-The plugin reads SAIA rate-limit headers (`x-ratelimit-remaining-*`) in the background and displays live quota remaining in the OpenCode TUI prompt bar:
+The plugin reads SAIA rate-limit headers (`x-ratelimit-remaining-*`, also in LiteLLM's `llm_provider-` form) from SAIA responses and displays live quota remaining in the OpenCode TUI prompt footer (`prompt.footer.status`) and sidebar (`sidebar.content`):
 
 ```text
 27/m · 117/h · 519/d · 2.5k/mo
@@ -378,7 +454,12 @@ If validation fails, the script will show detailed error messages to help you fi
 
 | File | Purpose |
 |---|---|
-| `src/saia.ts` | OpenCode plugin — master: shell wrapper; `bleedingEdge`: native Node.js plugin |
+| `src/server.js` | OpenCode 2 plugin (server half), installed as `plugins/saia/server.js` |
+| `src/tui.tsx` | OpenCode 2 rate-limit widget, installed as `plugins/saia/tui.tsx` |
+| `src/limits-server.js` | OpenCode 2 standalone rate-limit plugin (`install.sh --limits-only`) |
+| `src/saia-limits-v2.js`, `src/rpc.mjs` | OpenCode 2 rate-limit observer and its `saia-limits` RPC |
+| `src/saia-limits-logic.ts` | Widget helpers shared by the OpenCode 1 and 2 widgets |
+| `src/saia.ts` | OpenCode 1 plugin (reference; does not load in OpenCode 2) |
 | `src/saia-memory.ts` | Memory layer utilities (`bleedingEdge` only) - caching, usage tracking, metrics |
 | `src/validate-config.sh` | JSON schema validator for opencode.json files |
 | `src/setup-wizard.sh` | Interactive first-time setup wizard (validates API key, selects profile) |

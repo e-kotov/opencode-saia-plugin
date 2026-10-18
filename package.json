@@ -1,9 +1,9 @@
 {
   "name": "opencode-saia-plugin",
   "version": "0.3.0",
-  "description": "Runtime SAIA (GWDG Chat AI) plugin for OpenCode",
+  "description": "Runtime SAIA (GWDG Chat AI) plugin for OpenCode 2",
   "type": "module",
-  "main": "./src/saia.ts",
+  "main": "./src/server.js",
   "bin": {
     "generate-saia-config": "./src/generate-saia-config.sh",
     "copy-saia-config": "./src/copy-saia-config.sh",
@@ -25,7 +25,8 @@
     "test": "node --import tsx --test src/*.test.mjs",
     "validate": "bash src/validate-config.sh opencode.json",
     "generate": "bash src/generate-saia-config.sh",
-    "tsc": "tsc --noEmit --skipLibCheck"
+    "tsc": "tsc --noEmit --skipLibCheck",
+    "vendor:jsonc-parser": "esbuild node_modules/jsonc-parser/lib/esm/main.js --bundle --format=esm --platform=node --legal-comments=none --banner:js=\"$(cat src/vendor/jsonc-parser.banner.txt)\" --outfile=src/vendor/jsonc-parser.mjs"
   },
   "repository": {
     "type": "git",
@@ -55,7 +56,17 @@
     "@opentui/keymap": "0.4.5",
     "@opentui/solid": "0.4.5",
     "@types/node": "^20.0.0",
+    "jsonc-parser": "3.3.1",
     "tsx": "4.23.12",
     "typescript": "5.8.2"
+  },
+  "exports": {
+    ".": "./src/server.js",
+    "./server": "./src/server.js",
+    "./tui": "./src/tui.tsx",
+    "./rpc": "./src/rpc.mjs",
+    "./limits": "./src/limits-server.js",
+    "./v1": "./src/saia-plugin.ts",
+    "./v1/tui": "./src/saia-limits-tui.tsx"
   }
 }

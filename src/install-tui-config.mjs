@@ -1,10 +1,13 @@
-import { access, mkdir, readFile, realpath, rename, writeFile } from "node:fs/promises"
-import { constants as fsConstants } from "node:fs"
+import { mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
 import { defaultSaiaConfigDir } from "./saia-settings.mjs"
+import { applyEdits, modify, parse, printParseErrorCode } from "./vendor/jsonc-parser.mjs"
 
-export const TUI_PLUGIN_PATH = "./plugins/saia-limits-tui.tsx"
+// OpenCode 2 discovers the widget from the plugin directory itself, so a
+// `cli.json` entry is only needed to pass it options. (OpenCode 1 needed a
+// `tui.json` registration for the widget to load at all.)
+export const TUI_PLUGIN_PATH = "./plugins/saia"
 
 /** Options the widget understands, and the values each one accepts. */
 export const TUI_PLUGIN_OPTIONS = {
@@ -13,30 +16,40 @@ export const TUI_PLUGIN_OPTIONS = {
   layout: ["line", "stack"],
 }
 
-/**
- * A `plugin` entry is either `"<spec>"` or `["<spec>", {options}]`
- * (ConfigPluginV1.Spec). Matching on the spec alone is what stops a second
- * registration being appended once options are in play.
- */
-function specOf(entry) {
-  return Array.isArray(entry) && entry.length > 0 ? entry[0] : entry
+/** A `plugins` entry is either `"<package>"` or `{ package, options }`. */
+function packageOf(entry) {
+  return entry && typeof entry === "object" && !Array.isArray(entry) ? entry.package : entry
 }
 
 /**
- * Whether an entry registers this widget, compared on the file name rather than
- * the spec string. OpenCode rewrites a relative spec to an absolute path when
- * it loads the config, so the entry written as `./plugins/saia-limits-tui.tsx`
- * comes back as `/home/you/.config/opencode/plugins/saia-limits-tui.tsx`.
- * Matching the raw strings then finds nothing and appends a second
- * registration for the same file, and the widget renders twice.
+ * Whether an entry registers this config's own `plugins/<name>` directory.
+ * The spec is resolved the way OpenCode 2 resolves a local plugin
+ * (`localSource` in @opencode/plugin): `file://` URLs, and `./`, `../` and
+ * absolute paths against the `cli.json` directory. Anything else — an npm
+ * spec such as `@someone/saia`, or another directory that merely ends in
+ * `saia` — is not this plugin and is left alone.
  */
-function isThisWidget(entry) {
-  const spec = specOf(entry)
-  return typeof spec === "string" && spec.split("/").pop() === TUI_PLUGIN_PATH.split("/").pop()
+function isOwnedRegistration(entry, configDir, name) {
+  const spec = packageOf(entry)
+  if (typeof spec !== "string") return false
+  let url
+  if (spec.startsWith("file://")) {
+    try {
+      url = new URL(spec)
+    } catch {
+      return false
+    }
+  } else if (spec.startsWith("./") || spec.startsWith("../") || path.isAbsolute(spec)) {
+    url = pathToFileURL(path.resolve(configDir, spec))
+  } else {
+    return false
+  }
+  const own = pathToFileURL(path.resolve(configDir, "plugins", name)).href
+  return url.href.replace(/\/+$/, "") === own
 }
 
 function optionsOf(entry) {
-  const options = Array.isArray(entry) && entry.length > 1 ? entry[1] : undefined
+  const options = entry && typeof entry === "object" && !Array.isArray(entry) ? entry.options : undefined
   return options && typeof options === "object" && !Array.isArray(options) ? options : {}
 }
 
@@ -52,61 +65,111 @@ export function validateTuiPluginOptions(options = {}) {
   return options
 }
 
-async function fileExists(file) {
+async function readConfigText(file) {
   try {
-    await access(file, fsConstants.F_OK)
-    return true
-  } catch {
-    return false
+    return await readFile(file, "utf8")
+  } catch (error) {
+    if (error?.code === "ENOENT") return undefined
+    throw error
   }
 }
 
-export async function installTuiPlugin(configDir = defaultSaiaConfigDir(), options = {}) {
-  const requested = validateTuiPluginOptions(
-    Object.fromEntries(Object.entries(options).filter(([, value]) => value !== undefined && value !== "")),
-  )
-  await mkdir(configDir, { recursive: true })
-  const configPath = path.join(configDir, "tui.json")
-  let config = {}
-  const exists = await fileExists(configPath)
-
-  if (exists) {
-    try {
-      config = JSON.parse(await readFile(configPath, "utf8"))
-    } catch (error) {
-      throw new Error(`Cannot update invalid JSON in ${configPath}`, { cause: error })
-    }
+// OpenCode 2 reads `cli.json` as JSONC with trailing commas
+// (packages/cli/src/config/config.ts), and so does this.
+function parseConfig(text, configPath) {
+  const errors = []
+  const config = parse(text, errors, { allowTrailingComma: true })
+  if (errors.length) {
+    const { error, offset } = errors[0]
+    throw new Error(`Cannot update ${configPath}: ${printParseErrorCode(error)} at offset ${offset}`)
   }
-
   if (!config || typeof config !== "object" || Array.isArray(config)) {
     throw new Error(`Cannot update ${configPath}: expected a JSON object`)
   }
-  if (config.plugin !== undefined && !Array.isArray(config.plugin)) {
-    throw new Error(`Cannot update ${configPath}: expected "plugin" to be an array`)
+  if (config.plugins !== undefined && !Array.isArray(config.plugins)) {
+    throw new Error(`Cannot update ${configPath}: expected "plugins" to be an array`)
   }
+  return config
+}
 
-  const plugins = config.plugin ?? []
-  const index = plugins.findIndex(isThisWidget)
+const FORMATTING = { formattingOptions: { tabSize: 2, insertSpaces: true } }
 
+/**
+ * Work out the `cli.json` change for the widget's options without writing
+ * anything, so an installer can refuse before touching installed files.
+ * Returns `{ changed, configPath, commit }`; `commit()` writes the prepared
+ * text atomically and refuses if the file changed since it was read.
+ *
+ * With no options and nothing to migrate nothing is written: the widget
+ * loads from its directory either way. `replaces` names plugin directories
+ * this one supersedes — the full plugin replaces the standalone
+ * `saia-limits` one, which has the same widget. Their own registrations are
+ * removed and their options carried over (an option already set for this
+ * plugin, or requested now, takes precedence), so a configured placement or
+ * layout survives the switch.
+ *
+ * The file is edited in place (jsonc-parser `modify`, as OpenCode's own
+ * `plugin add` does): comments and formatting outside `plugins` are kept.
+ */
+export async function prepareTuiPlugin(configDir = defaultSaiaConfigDir(), options = {}, { name = "saia", replaces = [] } = {}) {
+  const requested = validateTuiPluginOptions(
+    Object.fromEntries(Object.entries(options).filter(([, value]) => value !== undefined && value !== "")),
+  )
+  const configPath = path.join(configDir, "cli.json")
+  const unchanged = { changed: false, configPath, commit: async () => {} }
+  const before = await readConfigText(configPath)
+  const exists = before !== undefined
+  if (Object.keys(requested).length === 0 && (replaces.length === 0 || !exists)) return unchanged
+
+  const text = before ?? "{}"
+  const config = parseConfig(text, configPath)
+  const original = config.plugins ?? []
+  const superseded = original.filter((entry) => replaces.some((old) => isOwnedRegistration(entry, configDir, old)))
+  if (Object.keys(requested).length === 0 && superseded.length === 0) return unchanged
+  const inherited = Object.assign({}, ...superseded.map(optionsOf))
+  // The superseded entry's position is kept for the replacement when this
+  // plugin has no entry yet, so plugin order does not change.
+  const firstSuperseded = original.findIndex((entry) => superseded.includes(entry))
+  const plugins = original.filter((entry) => !superseded.includes(entry))
+  const index = plugins.findIndex((entry) => isOwnedRegistration(entry, configDir, name))
   // Merge rather than replace: setting one option must not silently drop
   // another set by an earlier run, and an option left out stays as it was.
-  const merged = { ...(index === -1 ? {} : optionsOf(plugins[index])), ...requested }
-  const entry = Object.keys(merged).length > 0 ? [TUI_PLUGIN_PATH, merged] : TUI_PLUGIN_PATH
+  const merged = { ...inherited, ...(index === -1 ? {} : optionsOf(plugins[index])), ...requested }
+  const entry = { package: `./plugins/${name}`, options: merged }
+  const hasOptions = Object.keys(merged).length > 0
+  if (index !== -1) plugins[index] = entry
+  else if (hasOptions) plugins.splice(firstSuperseded === -1 ? plugins.length : firstSuperseded, 0, entry)
+  const changed = JSON.stringify(original) !== JSON.stringify(plugins)
+  if (!changed && exists) return unchanged
 
-  const changed = index === -1 || JSON.stringify(plugins[index]) !== JSON.stringify(entry)
-  const schemaAdded = config.$schema === undefined
-  if (index === -1) plugins.push(entry)
-  else plugins[index] = entry
-
-  config.$schema ??= "https://opencode.ai/tui.json"
-  config.plugin = plugins
-
-  if (changed || schemaAdded || !exists) {
-    const temporaryPath = `${configPath}.${process.pid}.tmp`
-    await writeFile(temporaryPath, `${JSON.stringify(config, null, 2)}\n`)
-    await rename(temporaryPath, configPath)
+  let updated = changed ? applyEdits(text, modify(text, ["plugins"], plugins, FORMATTING)) : text
+  if (config.$schema === undefined) {
+    updated = applyEdits(updated, modify(updated, ["$schema"], "https://opencode.ai/v2/cli.json", FORMATTING))
   }
+  parseConfig(updated, configPath)
+  if (!updated.endsWith("\n")) updated += "\n"
 
+  const commit = async () => {
+    if ((await readConfigText(configPath)) !== before) {
+      throw new Error(`${configPath} changed while installing; nothing was written to it`)
+    }
+    await mkdir(configDir, { recursive: true })
+    const temporaryPath = `${configPath}.${process.pid}.tmp`
+    try {
+      await writeFile(temporaryPath, updated, { mode: 0o600 })
+      await rename(temporaryPath, configPath)
+    } catch (error) {
+      await rm(temporaryPath, { force: true }).catch(() => {})
+      throw error
+    }
+  }
+  return { changed, configPath, commit }
+}
+
+/** Merge widget options into `cli.json` now; see `prepareTuiPlugin`. */
+export async function installTuiPlugin(configDir = defaultSaiaConfigDir(), options = {}, settings = {}) {
+  const { changed, configPath, commit } = await prepareTuiPlugin(configDir, options, settings)
+  await commit()
   return { changed, configPath }
 }
 
@@ -115,12 +178,17 @@ async function isMainModule() {
   return import.meta.url === pathToFileURL(await realpath(process.argv[1])).href
 }
 
-/** `--narrow=hide`, `--placement sidebar`, `--layout stack`; anything else is the config dir. */
+/** `--narrow=hide`, `--placement sidebar`, `--layout stack`, `--limits-only`; anything else is the config dir. */
 export function parseTuiPluginArgs(argv = []) {
   const options = {}
   let configDir
+  let name = "saia"
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index]
+    if (argument === "--limits-only") {
+      name = "saia-limits"
+      continue
+    }
     const match = /^--(narrow|placement|layout)(?:=(.*))?$/.exec(argument)
     if (!match) {
       configDir ??= argument
@@ -130,11 +198,11 @@ export function parseTuiPluginArgs(argv = []) {
     if (value === undefined) throw new Error(`--${match[1]} needs a value`)
     options[match[1]] = value
   }
-  return { configDir, options: validateTuiPluginOptions(options) }
+  return { configDir, name, options: validateTuiPluginOptions(options) }
 }
 
 if (await isMainModule()) {
-  const { configDir, options } = parseTuiPluginArgs(process.argv.slice(2))
-  const { changed, configPath } = await installTuiPlugin(configDir, options)
-  console.log(`${changed ? "Configured" : "Already configured"} ${configPath}`)
+  const { configDir, name, options } = parseTuiPluginArgs(process.argv.slice(2))
+  const { changed, configPath } = await installTuiPlugin(configDir, options, { name })
+  console.log(`${changed ? "Configured" : "No change to"} ${configPath}`)
 }

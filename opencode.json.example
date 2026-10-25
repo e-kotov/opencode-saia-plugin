@@ -1,5 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": ["saia"],
-  "model": "saia/glm-4.7"
+  "model": "saia/glm-5.3-flash"
 }

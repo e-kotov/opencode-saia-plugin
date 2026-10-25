@@ -3,7 +3,7 @@
 ## General
 
 **Q: How do I switch models in OpenCode?**
-A: Use `/model saia/<model-name>` in OpenCode. For example: `/model saia/glm-4.7`. You can also use aliases like `/model saia/best-for-coding`.
+A: Use `/model saia/<model-name>` in OpenCode. For example: `/model saia/glm-5.3-flash`. You can also use aliases like `/model saia/best-for-coding`.
 
 **Q: How do I switch profiles?**
 A: Set the `SAIA_PROFILE` environment variable: `SAIA_PROFILE=budget bash src/generate-saia-config.sh`. Valid profiles: `production`, `development`, `budget`.

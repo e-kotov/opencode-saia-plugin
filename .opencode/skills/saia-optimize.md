@@ -23,10 +23,10 @@ Analyzes your usage patterns from `~/.cache/saia/usage.jsonl` and metrics from `
 ```
 Optimal models for your project (src/):
 
-Coding tasks:     glm-4.7 (fast, 99.2% success)
-Documentation:    glm-4-plus (good reasoning, 98.5% success)
-Vision tasks:     glm-4v (vision-capable, 97.1% success)
-General:          glm-flash (fastest, 96.8% success)
+Coding tasks:     qwen3-coder-next or glm-5.3-flash
+Reasoning:        qwen3.5-397b-a17b
+Vision:           qwen3.6-35b-a3b or gemma-4-31b-it
+Audio:            qwen3-omni-30b-a3b-instruct
 ```
 
 ## Notes

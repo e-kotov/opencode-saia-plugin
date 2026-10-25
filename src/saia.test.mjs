@@ -15,8 +15,8 @@ const GENERATED_OPTIONS = {
 
 const READY_MODELS = [
   {
-    id: "glm-4.7",
-    name: "GLM-4.7",
+    id: "glm-5.3-flash",
+    name: "GLM 5.3 Flash",
     input: ["text"],
     output: ["text", "thought"],
     status: "ready",
@@ -114,15 +114,15 @@ test("decorates an empty config in memory with only ready SAIA models", async ()
 
   await hooks.config(harness.config)
 
-  assert.equal(harness.config.model, "saia/glm-4.7")
+  assert.equal(harness.config.model, "saia/glm-5.3-flash")
   assert.equal(harness.config.provider.saia.npm, "@ai-sdk/openai-compatible")
   assert.equal(harness.config.provider.saia.options.baseURL, DEFAULT_SAIA_BASE_URL)
   assert.equal(harness.config.provider.saia.options.apiKey, "test-key")
-  assert.deepEqual(Object.keys(harness.config.provider.saia.models), ["glm-4.7"])
-  assert.equal(harness.config.provider.saia.models["glm-4.7"].reasoning, true)
+  assert.deepEqual(Object.keys(harness.config.provider.saia.models), ["glm-5.3-flash"])
+  assert.equal(harness.config.provider.saia.models["glm-5.3-flash"].reasoning, true)
   assert.deepEqual(harness.savedSettings().managedModels, {
-    "glm-4.7": {
-      name: "GLM-4.7",
+    "glm-5.3-flash": {
+      name: "GLM 5.3 Flash",
       reasoning: true,
       options: GENERATED_OPTIONS,
     },
@@ -190,7 +190,7 @@ test("preserves direct and proxy provider overlays plus a non-SAIA default", asy
           customOption: true,
         },
         models: {
-          "glm-4.7": {
+          "glm-5.3-flash": {
             limit: { context: 200000, output: 8192 },
             options: { "tool-call-parser": "custom-parser", "x-model-option": "keep" },
           },
@@ -223,11 +223,11 @@ test("preserves direct and proxy provider overlays plus a non-SAIA default", asy
   assert.equal(config.provider.saia.options.apiKey, "proxy-key")
   assert.deepEqual(config.provider.saia.options.headers, { "x-proxy": "present" })
   assert.equal(config.provider.saia.options.customOption, true)
-  assert.deepEqual(config.provider.saia.models["glm-4.7"].limit, {
+  assert.deepEqual(config.provider.saia.models["glm-5.3-flash"].limit, {
     context: 200000,
     output: 8192,
   })
-  assert.deepEqual(config.provider.saia.models["glm-4.7"].options, {
+  assert.deepEqual(config.provider.saia.models["glm-5.3-flash"].options, {
     ...GENERATED_OPTIONS,
     "tool-call-parser": "custom-parser",
     "x-model-option": "keep",

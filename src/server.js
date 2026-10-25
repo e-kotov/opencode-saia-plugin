@@ -162,7 +162,7 @@ export function createSaiaPlugin(dependencies = {}) {
       // No default, or an unavailable SAIA one: SAIA's preferred ready model,
       // as OpenCode 1's `decorateSaiaConfig` chose. Other providers' defaults
       // and an available SAIA default are left alone.
-      const firstAvailable = state.ids.includes("glm-4.7") ? "glm-4.7" : state.ids[0]
+      const firstAvailable = state.ids.includes("glm-5.3-flash") ? "glm-5.3-flash" : state.ids[0]
       const selected = state.preferredModel && state.ids.includes(state.preferredModel) ? state.preferredModel : firstAvailable
       const reconcileDefault = (editor) => {
         if (!selected || !editor.provider.get(PROVIDER_ID)) return

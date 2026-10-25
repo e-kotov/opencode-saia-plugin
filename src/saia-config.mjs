@@ -124,7 +124,7 @@ export function decorateSaiaConfig(config, {
     models: retainedModels,
   }
 
-  const firstAvailable = modelIDs.includes("glm-4.7") ? "glm-4.7" : modelIDs[0]
+  const firstAvailable = modelIDs.includes("glm-5.3-flash") ? "glm-5.3-flash" : modelIDs[0]
   const selected = preferredModel && modelIDs.includes(preferredModel) ? preferredModel : firstAvailable
   const current = config.model
   const currentIsUnavailableSaia =

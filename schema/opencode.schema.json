@@ -23,7 +23,7 @@
     },
     "model": {
       "type": "string",
-      "description": "Default model identifier (e.g., 'saia/glm-4.7')",
+      "description": "Default model identifier (e.g., 'saia/glm-5.3-flash')",
       "pattern": "^saia/.+$"
     },
     "provider": {

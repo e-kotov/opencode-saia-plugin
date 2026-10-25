@@ -4,7 +4,7 @@ set -euo pipefail
 # A/B Testing Framework for SAIA Models
 # Randomly selects control or variant model for each session
 
-CONTROL_MODEL="saia/glm-4.7"
+CONTROL_MODEL="saia/glm-5.3-flash"
 VARIANT_MODEL="saia/qwen3.5-35b-a3b"
 SPLIT=50
 

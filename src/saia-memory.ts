@@ -220,9 +220,9 @@ export async function getRecommendedModel(availableModels: string[]): Promise<st
     return prefs.favoriteModel
   }
 
-  // Fallback: pick glm-4.7 if available, else first model
-  if (availableModels.includes("glm-4.7")) {
-    return "glm-4.7"
+  // Fallback: prefer the current SAIA workhorse, else the first available model
+  if (availableModels.includes("glm-5.3-flash")) {
+    return "glm-5.3-flash"
   }
 
   return availableModels[0] || "unknown"

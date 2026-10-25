@@ -12,19 +12,19 @@ Trigger this skill when:
 ## Profiles
 
 ### Production
-- Highest quality models (glm-4-plus, glm-4.7)
+- Current workhorse: `glm-5.3-flash`; use `qwen3.5-397b-a17b` for harder reasoning
 - Best for critical code reviews, architecture decisions
 - Higher cost, best quality
 - Default profile
 
 ### Development
-- Balanced models (glm-4, glm-flash)
+- Balanced models such as `qwen3.8-27b` and `qwen3.6-35b-a3b`
 - Good for日常 coding, quick iterations
 - Faster responses, moderate quality
 - Recommended for active development
 
 ### Budget
-- Cheapest/fastest models (glm-flash-only)
+- Smaller models such as `meta-llama-3.1-8b-instruct` and `deepseek-v4-flash-0731`
 - Ideal for quick edits, syntax checks, refactors
 - Lowest cost, acceptable quality
 - Good for large-scale codebase operations
@@ -44,6 +44,6 @@ You can override the global profile at the project level by editing `.opencode/s
 /opencode/skills/saia-switch-profile
 Choose: budget
 
-# Result: All completions now use glm-flash (cheapest, fastest)
+# Result: model choices follow the selected profile
 # Saved: { "profile": "budget" } in preferences
 ```

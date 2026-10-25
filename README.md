@@ -293,20 +293,22 @@ Restart OpenCode after generating the config.
 
 ## Available Models
 
-The plugin includes 16 SAIA models, fetched live from the API and categorized automatically:
+The plugin fetches ready models from the configured SAIA `/v1/models` endpoint; it does not maintain the runtime catalogue in code. The catalogue observed on 2026-10-25 contained:
 
-| Category | Models | Description |
-|---|---|---|
-| **Reasoning** | Qwen3.5 397B/122B, Qwen3-30B | Chain-of-thought models with `can_reason: true` in config |
-| **Coder** | Qwen3 Coder Next | Code-specialized models |
-| **Vision** | Qwen3.6 35B, Gemma 4 31B, Qwen3 Omni 30B, MedGemma 27B | Vision/multimodal models with `attachment: true` |
-| **Agentic** | GLM-4.7, Devstral 2 123B, Mistral Medium 3.5 128B | Strong tool-use and agentic coding |
-| **Large Context** | OpenAI GPT-OSS 120B, Mistral Medium 3.5 128B | 128k+ context windows |
-| **General** | Qwen3.6 27B, Qwen3 30B, DeepSeek V4 Flash, Apertus 70B, Llama 3.1 8B, etc. | General-purpose models |
+| Model | Input |
+|---|---|
+| `glm-5.3-flash` | Text, image, video |
+| `qwen3.5-397b-a17b` | Text, image |
+| `qwen3.6-35b-a3b` | Text, image |
+| `qwen3.8-27b` | Text, image |
+| `deepseek-v4-flash-0731` | Text |
+| `gemma-4-31b-it` | Text, image |
+| `meta-llama-3.1-8b-instruct` | Text, image |
+| `qwen3-30b-a3b-instruct-2507` | Text |
+| `qwen3-coder-next` | Text |
+| `qwen3-omni-30b-a3b-instruct` | Text, image, audio |
 
-Default model: `saia/glm-4.7`
-
-Models marked with `can_reason: true` enable OpenCode's reasoning mode (chain-of-thought). Use `/model` in OpenCode to switch models.
+The default model is `saia/glm-5.3-flash`. The plugin derives attachment support from the API's `input` field and reasoning support from `output`; context and output limits stay in the user's OpenCode config because `/v1/models` does not report them.
 
 ### Model Aliases
 
@@ -317,7 +319,7 @@ The plugin generates convenience aliases for quick model selection without memor
 | `saia/best-for-coding` | qwen3-coder-next | Code-specialized tasks |
 | `saia/best-for-reasoning` | qwen3.5-397b | Complex reasoning, math, planning |
 | `saia/best-for-vision` | qwen3.6-35b | Image analysis, multimodal |
-| `saia/best-for-agentic` | glm-4.7 | Agentic coding, tool use |
+| `saia/best-for-agentic` | glm-5.3-flash | Agentic coding, tool use |
 | `saia/best-quality` | qwen3.5-397b | Highest quality output |
 | `saia/fastest-reasoning` | qwen3-30b-a3b-instruct-2507 | Fast reasoning with low cost |
 | `saia/fastest` | meta-llama-3.1-8b | Fastest response time |
@@ -329,16 +331,14 @@ Aliases are profile-aware: only included if the target model is available in the
 
 ### Model Properties
 
-Each model in the generated config may include these special fields:
+The plugin derives these model fields from SAIA's live metadata:
 
 | Field | Values | Description |
 |---|---|---|
-| `can_reason` | `true` | Enables chain-of-thought reasoning mode in OpenCode |
-| `attachment` | `true` | Allows image/file input (vision models only) |
-| `limit.context` | `32768` / `128000` / `131072` | Context window size in tokens |
-| `limit.output` | `4096` / `8192` / `16384` / `32768` | Max output tokens per model |
+| `reasoning` | `true` | Set when `output` includes `thought` |
+| `attachment` | `true` | Set when `input` includes image, audio, or video |
 
-Most models have 128k context windows. Vision, medical, and research models use 32k.
+The API does not report context or output limits; configure those locally when needed.
 
 ## Rate Limits
 
@@ -358,7 +358,7 @@ curl -s -w "\nTime: %{time_total}s\n" \
   -H "Authorization: Bearer $SAIA_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "glm-4.7",
+    "model": "glm-5.3-flash",
     "messages": [{"role": "user", "content": "Explain async/await in JavaScript in 3 sentences."}],
     "max_tokens": 200
   }' | jq '.usage'

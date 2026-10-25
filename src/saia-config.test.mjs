@@ -7,8 +7,8 @@ import { fetchWithCache } from "./saia-memory.ts"
 import { isSaiaModelsResponse, parseSaiaModelsResponse } from "./saia-config.mjs"
 
 const READY_MODEL = {
-  id: "glm-4.7",
-  name: "GLM-4.7",
+  id: "glm-5.3-flash",
+  name: "GLM 5.3 Flash",
   input: ["text"],
   output: ["text"],
   status: "ready",
@@ -17,7 +17,7 @@ const READY_MODEL = {
 test("accepts only non-empty ready-model lists as a cached response", () => {
   assert.equal(isSaiaModelsResponse({ data: [READY_MODEL] }), true)
   assert.equal(isSaiaModelsResponse({ data: [] }), false)
-  assert.equal(isSaiaModelsResponse({ data: [{ id: "glm-4.7" }] }), false)
+  assert.equal(isSaiaModelsResponse({ data: [{ id: "glm-5.3-flash" }] }), false)
   assert.equal(isSaiaModelsResponse({ data: [{ ...READY_MODEL, status: "loading" }] }), false)
 })
 

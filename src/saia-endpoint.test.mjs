@@ -74,13 +74,13 @@ test("preserves unrelated settings when writing", async () => {
   await withConfigDir(async (directory) => {
     await writeFile(
       saiaConfigPath(directory),
-      JSON.stringify({ apiKeyCommand: ["op", "read", "op://x"], managedModels: { "glm-4.7": {} } }),
+      JSON.stringify({ apiKeyCommand: ["op", "read", "op://x"], managedModels: { "glm-5.3-flash": {} } }),
     )
     await applyEndpoint({ transport: "responses", host: "gwdg", configDir: directory })
 
     const settings = await readSettingsFile(directory)
     assert.deepEqual(settings.apiKeyCommand, ["op", "read", "op://x"])
-    assert.deepEqual(settings.managedModels, { "glm-4.7": {} })
+    assert.deepEqual(settings.managedModels, { "glm-5.3-flash": {} })
   })
 })
 

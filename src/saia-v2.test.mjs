@@ -13,7 +13,7 @@ import { fakeServerContext, responseEvent, settle } from "./fake-context.test-he
 const MODELS = {
   data: [
     { id: "qwen3.8-27b", name: "Qwen 3.8 27B", input: ["text", "image"], output: ["text", "thought"], status: "ready" },
-    { id: "glm-4.7", name: "GLM 4.7", input: ["text"], output: ["text"], status: "ready" },
+    { id: "glm-5.3-flash", name: "GLM 5.3 Flash", input: ["text"], output: ["text"], status: "ready" },
   ],
 }
 
@@ -126,10 +126,10 @@ test("discovery adds the saia provider and its ready models when none is configu
   assert.equal(qwen.capabilities.tools, true)
   assert.deepEqual(qwen.body, { "enable-tools": true, "enable-auto-tool-choice": true, "tool-call-parser": "openai" })
   assert.equal(qwen.settings.apiKey, "saia-key")
-  assert.deepEqual(state.models.get("saia/glm-4.7").capabilities.input, ["text"])
-  // glm-4.7 is preferred when nothing is selected.
-  assert.deepEqual(state.default, { providerID: "saia", modelID: "glm-4.7" })
-  assert.deepEqual(Object.keys(written[0].managedModels).sort(), ["glm-4.7", "qwen3.8-27b"])
+  assert.deepEqual(state.models.get("saia/glm-5.3-flash").capabilities.input, ["text"])
+  // glm-5.3-flash is preferred when nothing is selected.
+  assert.deepEqual(state.default, { providerID: "saia", modelID: "glm-5.3-flash" })
+  assert.deepEqual(Object.keys(written[0].managedModels).sort(), ["glm-5.3-flash", "qwen3.8-27b"])
   assert.deepEqual(logs, ["[SAIA] Configured 2 models via chat-completions (fresh)"])
   await cleanup()
 })
@@ -147,7 +147,7 @@ test("a configured gateway endpoint and key are kept; the transport still picks 
   const provider = state.records.get("saia").provider
   assert.equal(provider.name, "SAIA via gateway")
   assert.equal(provider.settings.baseURL, "http://127.0.0.1:47831/v1")
-  for (const model of ["qwen3.8-27b", "glm-4.7", "custom-only"]) {
+  for (const model of ["qwen3.8-27b", "glm-5.3-flash", "custom-only"]) {
     const draft = state.models.get(`saia/${model}`)
     assert.equal(draft.package, "aisdk:@ai-sdk/openai", model)
     assert.equal(draft.settings?.apiKey, undefined, "the SAIA key never replaces a configured gateway key")
@@ -160,7 +160,7 @@ test("a configured gateway endpoint and key are kept; the transport still picks 
 test("an empty or placeholder configured key is filled with the resolved SAIA key", async () => {
   for (const apiKey of ["", "{env:SAIA_API_KEY}"]) {
     const { state, cleanup } = await started({ configured: { settings: { apiKey } } })
-    assert.equal(state.models.get("saia/glm-4.7").settings.apiKey, "saia-key")
+    assert.equal(state.models.get("saia/glm-5.3-flash").settings.apiKey, "saia-key")
     await cleanup()
   }
 })
@@ -176,7 +176,7 @@ test("a previously generated model SAIA no longer serves is hidden; others are k
 
 test("the default model moves off an unavailable SAIA model but leaves another provider's alone", async () => {
   const moved = await started({ defaultModel: { providerID: "saia", modelID: "gone" } })
-  assert.deepEqual(moved.state.default, { providerID: "saia", modelID: "glm-4.7" })
+  assert.deepEqual(moved.state.default, { providerID: "saia", modelID: "glm-5.3-flash" })
   await moved.cleanup()
   const kept = await started({ defaultModel: { providerID: "openai", modelID: "gpt" } })
   assert.deepEqual(kept.state.default, { providerID: "openai", modelID: "gpt" })
@@ -217,7 +217,7 @@ test("system parts are merged for the strict Qwen deployments in every request k
     await fake.trigger(kind, event)
     assert.deepEqual(event.system, [{ type: "text", text: "You are OpenCode.\n\nProject rules." }], kind)
   }
-  const glm = { model: { providerID: "saia", id: "glm-4.7" }, system: [{ type: "text", text: "a" }, { type: "text", text: "b" }] }
+  const glm = { model: { providerID: "saia", id: "glm-5.3-flash" }, system: [{ type: "text", text: "a" }, { type: "text", text: "b" }] }
   normalizeSaiaQwenSystemParts(glm.model, glm.system)
   assert.equal(glm.system.length, 2, "only the allowlisted deployments are merged")
   const other = { model: { providerID: "kiconnect", id: "qwen3.8-27b" }, system: [{ type: "text", text: "a" }, { type: "text", text: "b" }] }
@@ -250,7 +250,7 @@ test("the limits observer records sessions and subagents, and survives a restart
   await fake.trigger("http.response", responseEvent({ sessionID: "ses_main", providerID: "saia", headers }))
   await fake.trigger(
     "http.response",
-    responseEvent({ sessionID: "ses_child", providerID: "saia", modelID: "glm-4.7", headers: { ...headers, "x-ratelimit-remaining-hour": "190" } }),
+    responseEvent({ sessionID: "ses_child", providerID: "saia", modelID: "glm-5.3-flash", headers: { ...headers, "x-ratelimit-remaining-hour": "190" } }),
   )
   // Another provider's response is not this hook's business.
   await fake.trigger("http.response", responseEvent({ sessionID: "ses_main", providerID: "kiconnect", headers: { "x-ratelimit-remaining-hour": "1" } }))
@@ -264,7 +264,7 @@ test("the limits observer records sessions and subagents, and survives a restart
   assert.equal(main.limits.hour, "190", "the account's quota follows the newest response")
   assert.equal(main.limits.subagent, false)
   assert.equal(main.subagentLimits.subagent, "explore")
-  assert.equal(main.subagentLimits.model, "glm-4.7")
+  assert.equal(main.subagentLimits.model, "glm-5.3-flash")
   assert.equal(main.subagents.ses_child.name, "explore")
 
   const restarted = fakeServerContext({ sessions, stored: Object.fromEntries(fake.storage) })
@@ -372,7 +372,7 @@ test("an unavailable configured SAIA default is replaced even though the configu
   // The first update after boot positions the late reconciliation.
   await domains.publish("provider.updated")
   domains.fold()
-  assert.deepEqual(domains.state.default, { providerID: "saia", modelID: "glm-4.7" })
+  assert.deepEqual(domains.state.default, { providerID: "saia", modelID: "glm-5.3-flash" })
   const afterBoot = domains.state.registrations
 
   // Further updates with a correct default register nothing more.
@@ -386,7 +386,7 @@ test("an unavailable configured SAIA default is replaced even though the configu
   assert.deepEqual(domains.state.default, { providerID: "saia", modelID: "retired-model" })
   await domains.publish("model.updated")
   domains.fold()
-  assert.deepEqual(domains.state.default, { providerID: "saia", modelID: "glm-4.7" })
+  assert.deepEqual(domains.state.default, { providerID: "saia", modelID: "glm-5.3-flash" })
 
   // Bounded: a configuration that keeps winning stops re-registration with one warning.
   for (let i = 0; i < 5; i += 1) {

@@ -5,7 +5,7 @@ import { normalizeSaiaQwenSystemMessages } from "./saia-system-messages.js"
 test("merges SAIA Qwen 3.5 system messages into one leading message", () => {
   const system = ["OpenCode instructions", "Project instructions", "User instructions"]
 
-  normalizeSaiaQwenSystemMessages({ providerID: "saia", id: "qwen3.5-122b-a10b" }, system)
+  normalizeSaiaQwenSystemMessages({ providerID: "saia", id: "qwen3.5-397b-a17b" }, system)
 
   assert.deepEqual(system, ["OpenCode instructions\n\nProject instructions\n\nUser instructions"])
 })
@@ -31,7 +31,7 @@ test("does not modify models without SAIA's strict Qwen system-message constrain
   const otherProviderSystem = ["OpenCode instructions", "Project instructions"]
 
   normalizeSaiaQwenSystemMessages({ providerID: "saia", id: "qwen3-coder-next" }, coderSystem)
-  normalizeSaiaQwenSystemMessages({ providerID: "other", id: "qwen3.5-122b-a10b" }, otherProviderSystem)
+  normalizeSaiaQwenSystemMessages({ providerID: "other", id: "qwen3.5-397b-a17b" }, otherProviderSystem)
 
   assert.deepEqual(coderSystem, ["OpenCode instructions", "Project instructions"])
   assert.deepEqual(otherProviderSystem, ["OpenCode instructions", "Project instructions"])

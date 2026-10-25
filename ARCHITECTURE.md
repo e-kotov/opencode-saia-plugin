@@ -93,6 +93,6 @@ The SAIA plugin connects OpenCode to SAIA (GWDG Chat AI) models through a layere
 
 | Profile    | Model Count | Default Model         | Use Case           |
 |------------|-------------|-----------------------|--------------------|
-| production | ~8-9        | glm-4.7              | Critical work      |
-| dev        | ~7-8        | qwen3.5-35b-a3b      | Active development |
-| budget     | ~4          | llama-3.1-8b-instruct| Cost optimization  |
+| production | dynamic     | glm-5.3-flash        | Critical work      |
+| dev        | dynamic     | qwen3.8-27b          | Active development |
+| budget     | dynamic     | deepseek-v4-flash-0731 | Cost optimization |

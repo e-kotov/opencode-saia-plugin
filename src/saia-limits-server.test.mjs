@@ -73,7 +73,7 @@ test("records rate limits and strips the internal header before the request leav
   const { calls, outgoing, config, hooks } = setup()
   await hooks.config(config)
 
-  const body = '{"model":"glm-4.7","input":"hello"}'
+  const body = '{"model":"glm-5.3-flash","input":"hello"}'
   await config.provider.saia.options.fetch("https://chat-ai.academiccloud.de/v1/responses", {
     method: "POST",
     headers: { "x-opencode-saia-session": "ses_test" },
@@ -119,7 +119,7 @@ test("persists rate limits to both subagent and parent session", async () => {
   await config.provider.saia.options.fetch("https://chat-ai.academiccloud.de/v1/responses", {
     method: "POST",
     headers: { "x-opencode-saia-session": "ses_subagent" },
-    body: '{"model":"glm-4.7"}',
+    body: '{"model":"glm-5.3-flash"}',
   })
   await hooks.flush()
 
@@ -137,7 +137,7 @@ test("preserves the body when the request is a Request object", async () => {
   const { calls, outgoing, config, hooks } = setup()
   await hooks.config(config)
 
-  const body = '{"model":"glm-4.7","input":"hello"}'
+  const body = '{"model":"glm-5.3-flash","input":"hello"}'
   await config.provider.saia.options.fetch(
     new Request("https://chat-ai.academiccloud.de/v1/responses", {
       method: "POST",

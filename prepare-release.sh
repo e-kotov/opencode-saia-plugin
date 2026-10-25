@@ -1,59 +1,67 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# prepare-release.sh
-# Bumps version, creates git tag, and generates changelog for a new release.
+# Bump package.json and package-lock.json, commit the version, and tag it.
 # Usage: bash prepare-release.sh [major|minor|patch|version_number]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-CURRENT_VERSION=$(jq -r '.version' package.json)
+if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+    echo "Error: commit or stash tracked changes before preparing a release." >&2
+    exit 1
+fi
 
-# Determine new version
+CURRENT_VERSION="$(node -p 'require("./package.json").version')"
 case "${1:-patch}" in
     major)
-        NEW_VERSION=$(echo "$CURRENT_VERSION" | awk -F. '{print $1+1 ".0.0"}')
+        NEW_VERSION="$(node -e 'const [a]=process.argv[1].split("."); console.log(`${Number(a)+1}.0.0`)' "$CURRENT_VERSION")"
         ;;
     minor)
-        NEW_VERSION=$(echo "$CURRENT_VERSION" | awk -F. '{print $1 "." $2+1 ".0"}')
+        NEW_VERSION="$(node -e 'const [a,b]=process.argv[1].split("."); console.log(`${a}.${Number(b)+1}.0`)' "$CURRENT_VERSION")"
         ;;
     patch)
-        NEW_VERSION=$(echo "$CURRENT_VERSION" | awk -F. '{print $1 "." $2 "." $3+1}')
+        NEW_VERSION="$(node -e 'const [a,b,c]=process.argv[1].split("."); console.log(`${a}.${b}.${Number(c)+1}`)' "$CURRENT_VERSION")"
         ;;
     *)
         NEW_VERSION="$1"
         ;;
 esac
 
-echo "Current version: $CURRENT_VERSION"
-echo "New version:     $NEW_VERSION"
-echo ""
-
-jq --arg v "$NEW_VERSION" '.version = $v' package.json > package.json.tmp
-mv package.json.tmp package.json
-echo "✓ Updated package.json to $NEW_VERSION"
-
-# Generate changelog from git log
-LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-if [[ -n "$LAST_TAG" ]]; then
-    echo ""
-    echo "Changes since $LAST_TAG:"
-    echo "---"
-    git log --oneline --no-decorate "${LAST_TAG}..HEAD" 2>/dev/null || echo "(initial release)"
-    echo "---"
+if [[ ! "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Error: version must use major.minor.patch format; got $NEW_VERSION" >&2
+    exit 1
 fi
 
-# Commit version bump
-git add package.json
-git commit -m "chore: bump version to $NEW_VERSION" --no-verify 2>/dev/null || echo "(nothing to commit)"
+TAG="v$NEW_VERSION"
+if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+    echo "Error: tag $TAG already exists." >&2
+    exit 1
+fi
 
-# Create tag
-git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
-echo "✓ Created tag v$NEW_VERSION"
+BRANCH="$(git branch --show-current)"
+if [[ -z "$BRANCH" ]]; then
+    echo "Error: prepare a release from a named branch, not detached HEAD." >&2
+    exit 1
+fi
 
-echo ""
-echo "Next steps:"
-echo "  git push origin main"
-echo "  git push origin v$NEW_VERSION"
-echo "  (Push will trigger .gitea/workflows/release.yml)"
+echo "Current version: $CURRENT_VERSION"
+echo "New version:     $NEW_VERSION"
+node - "$NEW_VERSION" <<'NODE'
+const fs = require("node:fs")
+const version = process.argv[2]
+const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"))
+const lock = JSON.parse(fs.readFileSync("package-lock.json", "utf8"))
+packageJson.version = version
+lock.version = version
+lock.packages[""].version = version
+fs.writeFileSync("package.json", `${JSON.stringify(packageJson, null, 2)}\n`)
+fs.writeFileSync("package-lock.json", `${JSON.stringify(lock, null, 2)}\n`)
+NODE
+git add package.json package-lock.json
+git commit -m "chore: bump version to $NEW_VERSION"
+git tag -a "$TAG" -m "Release $TAG"
+
+echo "Prepared $TAG. Push the commit and tag to GitHub to run release checks:"
+echo "  git push origin $BRANCH"
+echo "  git push origin $TAG"

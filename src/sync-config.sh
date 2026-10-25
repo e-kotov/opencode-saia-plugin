@@ -5,8 +5,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOCAL_CONFIG="${SAIA_CONFIG:-$SCRIPT_DIR/opencode-saia.json}"
 LOCAL_OPENCODE="opencode.json"
 BACKUP_DIR="${SAIA_BACKUP_DIR:-$HOME/.cache/saia/config-backups}"
-REMOTE_RAW_URL="${SAIA_REMOTE_RAW_URL:-https://codeberg.org/graphwiz-ai/opencode-saia-plugin/raw/branch/main/src/opencode-saia.json}"
-REMOTE_GIT_REPO="${SAIA_REMOTE_GIT_REPO:-https://codeberg.org/graphwiz-ai/opencode-saia-plugin.git}"
+REMOTE_RAW_URL="${SAIA_REMOTE_RAW_URL:-https://raw.githubusercontent.com/e-kotov/opencode-saia-plugin/master/src/opencode-saia.json}"
+REMOTE_GIT_REPO="${SAIA_REMOTE_GIT_REPO:-https://github.com/e-kotov/opencode-saia-plugin.git}"
 REMOTE_CONFIG_PATH="${SAIA_REMOTE_CONFIG_PATH:-src/opencode-saia.json}"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
@@ -37,7 +37,7 @@ fetch_remote_raw() {
 }
 
 show_diff() {
-    local a="$1" b="$2
+    local a="$1" b="$2"
     command -v diff &>/dev/null && diff -u "$a" "$b" 2>/dev/null || true
 }
 

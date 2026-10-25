@@ -20,11 +20,11 @@ jobs:
           node-version: '22'
       - name: Install test dependencies
         run: npm install --ignore-scripts --no-package-lock
-      - name: Install OpenCode 2.0.32 for runtime checks
+      - name: Install OpenCode 2.1.4 for runtime checks
         env:
-          OPENCODE_ARCHIVE_SHA256: 8adfbefe1d697b5d1774ab8d31630303543aa0676b9aa15d94ceb8e80a5bff69
+          OPENCODE_ARCHIVE_SHA256: 2edaf8cf96e81dec5ee996a3196b03345cf59e5a1673d83a4599bb4afc5c5f6d
         run: |
-          curl --fail --location --retry 3 https://opencode.ai/files/bin/2.0.32/opencode-linux-x64-baseline.tar.gz --output "$RUNNER_TEMP/opencode.tar.gz"
+          curl --fail --location --retry 3 https://opencode.ai/files/bin/2.1.4/opencode-linux-x64-baseline.tar.gz --output "$RUNNER_TEMP/opencode.tar.gz"
           echo "$OPENCODE_ARCHIVE_SHA256  $RUNNER_TEMP/opencode.tar.gz" | sha256sum --check
           mkdir -p "$RUNNER_TEMP/opencode-bin"
           tar -xzf "$RUNNER_TEMP/opencode.tar.gz" -C "$RUNNER_TEMP/opencode-bin"

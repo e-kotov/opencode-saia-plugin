@@ -3,8 +3,9 @@
 OpenCode plugin that adds all [SAIA](https://chat-ai.academiccloud.de) (GWDG Chat AI) models to your OpenCode setup.
 
 **Repositories:**
-- **Primary (active development):** [GitHub](https://github.com/tobias-weiss-ai-xr/opencode-saia-plugin)
-- **Legacy mirror:** [Codeberg](https://codeberg.org/graphwiz-ai/opencode-saia-plugin) (synced periodically, PRs welcome but development happens on GitHub)
+- **Maintained OpenCode 2 fork and releases:** [GitHub](https://github.com/e-kotov/opencode-saia-plugin)
+- **Upstream:** [GitHub](https://github.com/tobias-weiss-ai-xr/opencode-saia-plugin)
+- **Legacy OpenCode 1 mirror:** [Codeberg](https://codeberg.org/graphwiz-ai/opencode-saia-plugin)
 - **Original (reference):** [GitLab](https://gitlab-ce.gwdg.de/jlewis/opencode-saia-plugin) (jlewis/GWDG)
 
 ## What It Does
@@ -15,7 +16,7 @@ OpenCode plugin that adds all [SAIA](https://chat-ai.academiccloud.de) (GWDG Cha
 
 ## OpenCode 2
 
-This checkout targets OpenCode 2 (verified against 2.0.32). OpenCode 2 loads a
+This fork targets OpenCode 2 (tested against 2.1.4 in GitHub Actions). OpenCode 2 loads a
 plugin *directory*: `install.sh` installs `src/` as
 `~/.config/opencode/plugins/saia/` (honouring `$OPENCODE_CONFIG_DIR` and
 `$XDG_CONFIG_HOME`), where `server.js` is the server half and `tui.tsx` the
@@ -82,7 +83,7 @@ also need `curl`, `jq`
 
 ```bash
 # Clone
-git clone https://codeberg.org/graphwiz-ai/opencode-saia-plugin.git
+git clone https://github.com/e-kotov/opencode-saia-plugin.git
 cd opencode-saia-plugin
 
 # Install as an OpenCode 2 plugin directory (~/.config/opencode/plugins/saia/)
@@ -95,7 +96,7 @@ source ~/.bashrc
 
 **Windows PowerShell:**
 ```powershell
-git clone https://codeberg.org/graphwiz-ai/opencode-saia-plugin.git
+git clone https://github.com/e-kotov/opencode-saia-plugin.git
 cd opencode-saia-plugin
 cp -r src $HOME\.config\opencode\plugins\saia
 [Environment]::SetEnvironmentVariable("SAIA_API_KEY", "your_key_here", "User")
@@ -105,28 +106,24 @@ cp -r src $HOME\.config\opencode\plugins\saia
 
 **Linux/macOS:**
 ```bash
-curl -fsSL https://codeberg.org/graphwiz-ai/opencode-saia-plugin/raw/branch/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/e-kotov/opencode-saia-plugin/master/install.sh | bash
 ```
 
 **Windows PowerShell:**
 ```powershell
-Invoke-WebRequest -Uri "https://codeberg.org/graphwiz-ai/opencode-saia-plugin/raw/branch/master/install.ps1" -UseBasicParsing | Invoke-Expression
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/e-kotov/opencode-saia-plugin/master/install.ps1" -UseBasicParsing | Invoke-Expression
 ```
 
-> **OpenCode 2:** until this port is published, the Codeberg clone and
-> one-liners above install the OpenCode 1 plugin. Install from the maintained
-> OpenCode 2 checkout with `bash install.sh` instead.
+The Codeberg mirror remains on OpenCode 1. Use this GitHub repository for the
+OpenCode 2 plugin and releases.
 
 ### Updating
 
 Pull the maintained checkout and run `bash install.sh` again (settings and
-`cli.json` options are kept). The installed `plugins/saia/update-plugin.sh`
-downloads nothing by default: `--check` and `--self-update` exit with these
-directions, because the Codeberg upstream is the OpenCode 1 plugin.
-`SAIA_PLUGIN_V2_ARCHIVE_URL=<.tar.gz of an OpenCode 2 checkout>
-update-plugin.sh --self-update` installs such an archive (`src/` at its root or
-under one directory), after checking it has the OpenCode 2 entry points and
-backing up the current install, which is restored if the install fails;
+`cli.json` options are kept). To update from a tagged GitHub release, set
+`SAIA_PLUGIN_V2_ARCHIVE_URL` to that release's source archive and run
+`update-plugin.sh --self-update`. It checks for the OpenCode 2 entry points,
+backs up the current install, and restores it if installation fails;
 `--rollback` restores the newest backup.
 
 ### Interactive Setup Wizard
@@ -386,6 +383,10 @@ Metrics to track: `time_total` (latency), `usage.prompt_tokens`, `usage.completi
 | `LITELLM_PROXY_URL` | No | Optional LiteLLM proxy URL for caching/rate limiting |
 
 ## Comparison with Original GWDG Plugin
+
+The table below describes the historical Codeberg fork relative to the original
+GWDG plugin. The maintained OpenCode 2 fork and release source is the GitHub
+repository linked at the top of this README.
 
 This fork (Codeberg/graphwiz-ai) is based on the original SAIA plugin by jlewis/GWDG (GitLab-ce) but has diverged with additional features and different approach priorities.
 

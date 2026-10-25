@@ -30,7 +30,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://codeberg.org/graphwiz-ai/opencode-saia-plugin.git"
+    "url": "https://github.com/e-kotov/opencode-saia-plugin.git"
   },
   "keywords": [
     "opencode",
@@ -44,9 +44,9 @@
   "license": "MIT",
   "author": "graphwiz-ai",
   "bugs": {
-    "url": "https://codeberg.org/graphwiz-ai/opencode-saia-plugin/issues"
+    "url": "https://github.com/e-kotov/opencode-saia-plugin/issues"
   },
-  "homepage": "https://codeberg.org/graphwiz-ai/opencode-saia-plugin",
+  "homepage": "https://github.com/e-kotov/opencode-saia-plugin",
   "engines": {
     "node": ">=20.0.0"
   },

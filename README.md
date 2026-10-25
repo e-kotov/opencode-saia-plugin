@@ -27,6 +27,10 @@ registration are needed; the installer removes those OpenCode 1 files when they
 are this plugin's own copies. The OpenCode 1 implementation remains in
 `src/saia.ts`, `src/saia-plugin.ts` and `src/saia-limits-tui.tsx` for reference.
 
+The `0.4.x` release line is **OpenCode 2 only**. OpenCode 1 users need to stay
+on the legacy Codeberg line; its plugin files are not compatible with this
+runtime.
+
 | OpenCode 1 hook | OpenCode 2 replacement (`src/server.js`) |
 |---|---|
 | `config` (models, npm, baseURL, apiKey, default model) | SAIA `/models` discovery before registration, then a provider transform (adds the `saia` provider when it is not configured) and a model transform (discovered models, the transport's client package on every SAIA model, the resolved SAIA key only where no key is configured, retired generated models hidden, default model) |

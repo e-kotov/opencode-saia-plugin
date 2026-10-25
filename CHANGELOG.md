@@ -2,11 +2,13 @@
 
 This file records user-facing changes for each tagged release.
 
-## v0.3.1
+## v0.4.0
 
 Released 2026-10-25.
 
-First GitHub release of the maintained OpenCode 2 fork.
+Minor compatibility release for the maintained OpenCode 2 fork. The `0.4.x`
+line is for OpenCode 2 only; this release boundary reflects the OpenCode 2
+runtime rather than treating that migration as a patch update.
 
 ### Added
 

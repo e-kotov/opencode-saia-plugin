@@ -14,6 +14,8 @@ OpenCode plugin that adds all [SAIA](https://chat-ai.academiccloud.de) (GWDG Cha
 2. Generates an `opencode.json` with all SAIA models, properly categorized
 3. Copies it to your project directory so OpenCode picks it up
 
+See [CHANGELOG.md](CHANGELOG.md) for release history.
+
 ## OpenCode 2
 
 This fork targets OpenCode 2 (tested against 2.1.4 in GitHub Actions). OpenCode 2 loads a

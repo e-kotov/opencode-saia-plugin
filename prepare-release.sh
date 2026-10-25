@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Bump package.json and package-lock.json, commit the version, and tag it.
+# Bump package.json, commit the version, and tag it.
 # Usage: bash prepare-release.sh [major|minor|patch|version_number]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -51,14 +51,10 @@ node - "$NEW_VERSION" <<'NODE'
 const fs = require("node:fs")
 const version = process.argv[2]
 const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"))
-const lock = JSON.parse(fs.readFileSync("package-lock.json", "utf8"))
 packageJson.version = version
-lock.version = version
-lock.packages[""].version = version
 fs.writeFileSync("package.json", `${JSON.stringify(packageJson, null, 2)}\n`)
-fs.writeFileSync("package-lock.json", `${JSON.stringify(lock, null, 2)}\n`)
 NODE
-git add package.json package-lock.json
+git add package.json
 git commit -m "chore: bump version to $NEW_VERSION"
 git tag -a "$TAG" -m "Release $TAG"
 

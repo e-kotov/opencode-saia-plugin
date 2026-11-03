@@ -2,6 +2,28 @@
 
 This file records user-facing changes for each tagged release.
 
+## v0.4.1
+
+Released 2026-11-03.
+
+### Changed
+
+- Refreshed the bundled catalogue to the 14 currently advertised SAIA models,
+  adding `deepseek-v4.1-flash-1017`, `eurollm-22b-instruct-2512`, `glm-5.3`,
+  and `mistral-large-4-1t-a52b`.
+- Generated attachment and reasoning capabilities now follow SAIA's API metadata.
+- Updated model descriptions and local token budgets for the new entries.
+- The generator honours `XDG_CACHE_HOME` for its fetch metadata cache.
+
+### Compatibility and limits
+
+- This patch release remains OpenCode 2 only. The runtime already discovers
+  ready models dynamically; the default remains `saia/glm-5.3-flash`.
+- SAIA does not report token limits in `/v1/models`. New context figures come
+  from model documentation and output values are local operating budgets;
+  SAIA deployment maxima remain unverified. Live inference was quota-limited
+  during the catalogue refresh.
+
 ## v0.4.0
 
 Released 2026-10-25.

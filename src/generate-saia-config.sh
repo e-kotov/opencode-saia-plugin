@@ -111,7 +111,7 @@ MODEL_COUNT=$(echo "$MODELS_JSON" | jq -r '.data | length')
 print_info "Found $MODEL_COUNT SAIA models"
 
 # Cache last successful fetch timestamp
-SAIA_CACHE_DIR="$HOME/.cache/saia"
+SAIA_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/saia"
 mkdir -p "$SAIA_CACHE_DIR"
 cat > "$SAIA_CACHE_DIR/last-fetch.json" <<EOF
 {
@@ -151,7 +151,7 @@ categorize() {
         *thinking*|*r1*)
             echo "reasoning"
             ;;
-        deepseek-v4-flash*)
+        deepseek-v4*)
             echo "general"
             ;;
         *coder*)
@@ -189,7 +189,7 @@ get_cost_per_1k_tokens() {
         *122b*)                   echo "0.038" ;;   # ~$38/1M
         *120b*|*128b*)             echo "0.075" ;;   # ~$75/1M
         *397b*|*675b*)            echo "0.125" ;;   # ~$125/1M (flagship models)
-        deepseek-v4-flash*)       echo "0.008" ;;   # ~$8/1M (lightweight reasoning)
+        deepseek-v4*)       echo "0.008" ;;   # ~$8/1M (lightweight reasoning)
         *)                        echo "0.015" ;;   # default estimate
     esac
 }
@@ -198,7 +198,7 @@ get_estimated_latency_ms() {
     local id="$1"
     case "$id" in
         *8b*|*7b*)                 echo "fast" ;;    # <100ms TTFT
-        *27b*|deepseek-v4-flash*) echo "moderate" ;; # ~150ms
+        *27b*|deepseek-v4*) echo "moderate" ;; # ~150ms
         *31b*|*32b*)              echo "moderate" ;; # ~180ms
         *35b-a3b*|*30b*|*128b*)    echo "moderate" ;; # ~200ms
         qwen3-coder-next)         echo "fast" ;;    # optimized for coding
@@ -213,7 +213,7 @@ get_recommended_for() {
     case "$id" in
         *coder*)                 echo "agentic-coding,code-refactor,debug" ;;
         *thinking*|*r1*)          echo "complex-reasoning,math,planning" ;;
-        deepseek-v4-flash*)       echo "fast-reasoning,general-purpose,cost-optimization" ;;
+        deepseek-v4*)       echo "fast-reasoning,general-purpose,cost-optimization" ;;
         glm-5.3-flash)            echo "agentic-coding,tool-use,architecture" ;;
         medical*)                echo "medical-qa,healthcare,biomedical" ;;
         qwen3.5-397b*)           echo "complex-reasoning,high-quality-writing" ;;
@@ -252,7 +252,7 @@ include_in_profile_production() {
         qwen3.5-397b-a17b|glm-5.3-flash|deepseek-v4-flash-0731|qwen3-coder-next)
             echo "true"
             ;;
-        deepseek-v4-flash*)
+        deepseek-v4*)
             echo "true"
             ;;
         *coder*)
@@ -270,7 +270,7 @@ include_in_profile_development() {
 
     # Development: Balanced models for active development
     case "$id" in
-        qwen3.6-35b-a3b|qwen3.8-27b|qwen3-coder-next|glm-5.3-flash|deepseek-v4-flash*|qwen3.5-397b-a17b)
+        qwen3.6-35b-a3b|qwen3.8-27b|qwen3-coder-next|glm-5.3-flash|deepseek-v4*|qwen3.5-397b-a17b)
             echo "true"
             ;;
         gemma-4-31b-it)
@@ -321,6 +321,10 @@ describe() {
     local id="$1"
     local cat="$2"
     case "$id" in
+        deepseek-v4.1-flash-1017) echo "DeepSeek V4.1 Flash 1017 — Reasoning" ;;
+        eurollm-22b-instruct-2512) echo "EuroLLM 22B Instruct 2512 — Multilingual text" ;;
+        glm-5.3)                echo "GLM 5.3 — Reasoning" ;;
+        mistral-large-4-1t-a52b) echo "Mistral Large 4 1T A52B — Text and image input" ;;
         glm-5.3-flash)           echo "GLM 5.3 Flash — Fast agentic workhorse" ;;
         qwen3.5-397b-a17b)       echo "Qwen3.5 397B A17B — Reasoning and image input" ;;
         qwen3.8-27b)             echo "Qwen3.8 27B — Text and image input" ;;
@@ -353,6 +357,13 @@ can_reason() {
 get_context_window() {
     local id="$1"
     case "$id" in
+        deepseek-v4.1-flash-1017|glm-5.3|mistral-large-4-1t-a52b)
+            # Native documented context; SAIA deployment maximum is unverified.
+            echo "1048576"
+            ;;
+        eurollm-22b-instruct-2512)
+            echo "32768"
+            ;;
         glm-5.3-flash|deepseek-v4-flash-0731)
             echo "1048576"
             ;;
@@ -386,6 +397,13 @@ supports_attachment() {
 get_output_window() {
     local id="$1"
     case "$id" in
+        deepseek-v4.1-flash-1017|glm-5.3|mistral-large-4-1t-a52b)
+            # Local output operating budget, not a measured SAIA maximum.
+            echo "32768"
+            ;;
+        eurollm-22b-instruct-2512)
+            echo "4096"
+            ;;
         glm-5.3-flash|deepseek-v4-flash-0731|qwen3.5-397b-a17b|qwen3.6-35b-a3b|qwen3.8-27b)
             echo "32768"
             ;;
@@ -481,8 +499,9 @@ echo "$MODELS_JSON" | jq -r '.data[].id' | sort | while read -r model_id; do
         echo "," >> "$MASTER_CONFIG"
     fi
 
-    reason_flag=$(can_reason "$model_id")
-    attach_flag=$(supports_attachment "$model_id")
+    # Capability metadata is authoritative for new and existing deployments.
+    reason_flag=$(echo "$MODELS_JSON" | jq -r --arg id "$model_id" '.data[] | select(.id == $id) | ((.output // []) | index("thought") != null)')
+    attach_flag=$(echo "$MODELS_JSON" | jq -r --arg id "$model_id" '.data[] | select(.id == $id) | ((.input // []) | any(. == "image" or . == "audio" or . == "video"))')
     ctx=$(get_context_window "$model_id")
     out=$(get_output_window "$model_id")
     cost=$(get_cost_per_1k_tokens "$model_id")

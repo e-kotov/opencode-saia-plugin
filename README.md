@@ -296,7 +296,7 @@ Restart OpenCode after generating the config.
 
 ## Available Models
 
-The plugin fetches ready models from the configured SAIA `/v1/models` endpoint; it does not maintain the runtime catalogue in code. The catalogue observed on 2026-10-25 contained:
+The plugin fetches ready models from the configured SAIA `/v1/models` endpoint; it does not maintain the runtime catalogue in code. The catalogue observed on 2026-11-03 contained:
 
 | Model | Input |
 |---|---|
@@ -305,8 +305,12 @@ The plugin fetches ready models from the configured SAIA `/v1/models` endpoint; 
 | `qwen3.6-35b-a3b` | Text, image |
 | `qwen3.8-27b` | Text, image |
 | `deepseek-v4-flash-0731` | Text |
+| `deepseek-v4.1-flash-1017` | Text |
+| `eurollm-22b-instruct-2512` | Text |
+| `glm-5.3` | Text |
+| `mistral-large-4-1t-a52b` | Text, image |
 | `gemma-4-31b-it` | Text, image |
-| `meta-llama-3.1-8b-instruct` | Text, image |
+| `meta-llama-3.1-8b-instruct` | Text |
 | `qwen3-30b-a3b-instruct-2507` | Text |
 | `qwen3-coder-next` | Text |
 | `qwen3-omni-30b-a3b-instruct` | Text, image, audio |
